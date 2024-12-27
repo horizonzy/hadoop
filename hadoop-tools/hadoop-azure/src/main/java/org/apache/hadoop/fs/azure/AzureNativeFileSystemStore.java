@@ -110,6 +110,7 @@ public class AzureNativeFileSystemStore implements NativeFileSystemStore {
   static final String KEY_STORE_BLOB_MD5 = "fs.azure.store.blob.md5";
   static final String DEFAULT_STORAGE_EMULATOR_ACCOUNT_NAME = "storageemulator";
   static final String STORAGE_EMULATOR_ACCOUNT_NAME_PROPERTY_NAME = "fs.azure.storage.emulator.account.name";
+  static final String STORAGE_EMULATOR_PROXY_URL = "fs.azure.storage.emulator.proxy.url";
 
   /**
    * Configuration for User-Agent field.
@@ -912,8 +913,14 @@ public class AzureNativeFileSystemStore implements NativeFileSystemStore {
     URI blobEndPoint;
     if (isStorageEmulatorAccount(accountName)) {
       isStorageEmulator = true;
-      CloudStorageAccount account =
-          CloudStorageAccount.getDevelopmentStorageAccount();
+      String storageEmulatorProxyUrl = getStorageEmulatorProxyUrl();
+      CloudStorageAccount account;
+      if (storageEmulatorProxyUrl == null) {
+        account = CloudStorageAccount.getDevelopmentStorageAccount();
+      } else {
+        account =
+            CloudStorageAccount.getDevelopmentStorageAccount(URI.create(storageEmulatorProxyUrl));
+      }
       storageInteractionLayer.createBlobClient(account);
     } else {
       blobEndPoint = new URI(getHTTPScheme() + "://" + accountName);
@@ -986,6 +993,10 @@ public class AzureNativeFileSystemStore implements NativeFileSystemStore {
     return accountName.equalsIgnoreCase(sessionConfiguration.get(
         STORAGE_EMULATOR_ACCOUNT_NAME_PROPERTY_NAME,
         DEFAULT_STORAGE_EMULATOR_ACCOUNT_NAME));
+  }
+
+  private String getStorageEmulatorProxyUrl() {
+    return sessionConfiguration.get(STORAGE_EMULATOR_PROXY_URL);
   }
 
   @VisibleForTesting
